@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
-
 	"one-api/dto"
 	"one-api/relay/channel"
 	relaycommon "one-api/relay/common"
 	"one-api/setting/model_setting"
 	"one-api/types"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +25,7 @@ type Adaptor struct {
 }
 
 func (a *Adaptor) ConvertGeminiRequest(*gin.Context, *relaycommon.RelayInfo, *dto.GeminiChatRequest) (any, error) {
-	// TODO implement me
+	//TODO implement me
 	return nil, errors.New("not implemented")
 }
 
@@ -35,12 +34,12 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, info *relaycommon.RelayIn
 }
 
 func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.AudioRequest) (io.Reader, error) {
-	// TODO implement me
+	//TODO implement me
 	return nil, errors.New("not implemented")
 }
 
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.ImageRequest) (any, error) {
-	// TODO implement me
+	//TODO implement me
 	return nil, errors.New("not implemented")
 }
 
@@ -53,12 +52,17 @@ func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
 }
 
 func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
+	baseURL := ""
 	if a.RequestMode == RequestModeMessage {
-		return fmt.Sprintf("%s/v1/messages?beta=true", info.ChannelBaseUrl), nil
+		baseURL = fmt.Sprintf("%s/v1/messages", info.ChannelBaseUrl)
 	} else {
+		//baseURL = fmt.Sprintf("%s/v1/complete", info.ChannelBaseUrl)
 		return "", errors.New("ClaudeX: 请勿在 Claude Code CLI 之外使用接口")
-		// return fmt.Sprintf("%s/v1/complete", info.ChannelBaseUrl), nil
 	}
+	if info.IsClaudeBetaQuery {
+		baseURL = baseURL + "?beta=true"
+	}
+	return baseURL, nil
 }
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) error {
@@ -161,6 +165,7 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	} else {
 		return ClaudeHandler(c, resp, info, a.RequestMode)
 	}
+	return
 }
 
 func (a *Adaptor) GetModelList() []string {

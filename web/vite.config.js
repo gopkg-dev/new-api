@@ -19,9 +19,17 @@ For commercial licensing, please contact support@quantumnous.com
 
 import react from '@vitejs/plugin-react';
 import { defineConfig, transformWithEsbuild } from 'vite';
+import pkg from '@douyinfe/vite-plugin-semi';
+import path from 'path';
+const { vitePluginSemi } = pkg;
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   plugins: [
     {
       name: 'treat-js-files-as-jsx',
@@ -39,21 +47,10 @@ export default defineConfig({
       },
     },
     react(),
+    vitePluginSemi({
+      cssLayer: true,
+    }),
   ],
-  css: {
-    preprocessorOptions: {
-      scss: {
-        charset: false,
-        silenceDeprecations: ['legacy-js-api'],
-        api: 'modern-compiler'
-      }
-    }
-  },
-  resolve: {
-    alias: {
-      '~': './node_modules'
-    }
-  },
   optimizeDeps: {
     force: true,
     esbuildOptions: {
