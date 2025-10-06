@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+
 	"one-api/dto"
 	"one-api/relay/channel"
 	relaycommon "one-api/relay/common"
 	"one-api/setting/model_setting"
 	"one-api/types"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,7 +26,7 @@ type Adaptor struct {
 }
 
 func (a *Adaptor) ConvertGeminiRequest(*gin.Context, *relaycommon.RelayInfo, *dto.GeminiChatRequest) (any, error) {
-	//TODO implement me
+	// TODO implement me
 	return nil, errors.New("not implemented")
 }
 
@@ -34,12 +35,12 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, info *relaycommon.RelayIn
 }
 
 func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.AudioRequest) (io.Reader, error) {
-	//TODO implement me
+	// TODO implement me
 	return nil, errors.New("not implemented")
 }
 
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.ImageRequest) (any, error) {
-	//TODO implement me
+	// TODO implement me
 	return nil, errors.New("not implemented")
 }
 
@@ -56,13 +57,22 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 	if a.RequestMode == RequestModeMessage {
 		baseURL = fmt.Sprintf("%s/v1/messages", info.ChannelBaseUrl)
 	} else {
-		//baseURL = fmt.Sprintf("%s/v1/complete", info.ChannelBaseUrl)
+		// baseURL = fmt.Sprintf("%s/v1/complete", info.ChannelBaseUrl)
 		return "", errors.New("ClaudeX: 请勿在 Claude Code CLI 之外使用接口")
 	}
 	if info.IsClaudeBetaQuery {
 		baseURL = baseURL + "?beta=true"
 	}
 	return baseURL, nil
+}
+
+func CommonClaudeHeadersOperation(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) {
+	// common headers operation
+	anthropicBeta := c.Request.Header.Get("anthropic-beta")
+	if anthropicBeta != "" {
+		req.Set("anthropic-beta", anthropicBeta)
+	}
+	model_setting.GetClaudeSettings().WriteHeaders(info.OriginModelName, req)
 }
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) error {
@@ -104,9 +114,6 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	if req.Get("Anthropic-Dangerous-Direct-Browser-Access") == "" {
 		req.Set("Anthropic-Dangerous-Direct-Browser-Access", "true")
 	}
-	if req.Get("Anthropic-Version") == "" {
-		req.Set("Anthropic-Version", "2024-06-01")
-	}
 	if req.Get("Sec-Fetch-Mode") == "" {
 		req.Set("Sec-Fetch-Mode", "cors")
 	}
@@ -116,17 +123,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	if req.Get("X-App") == "" {
 		req.Set("X-App", "cli")
 	}
-
-	// X-App: cli
-	// X-Stainless-Arch: arm64
-	// X-Stainless-Lang: js
-	// X-Stainless-Os: MacOS
-	// X-Stainless-Package-Version: 0.60.0
-	// X-Stainless-Retry-Count: 0
-	// X-Stainless-Runtime: node
-	// X-Stainless-Runtime-Version: v20.17.0
-
-	model_setting.GetClaudeSettings().WriteHeaders(info.OriginModelName, req)
+	CommonClaudeHeadersOperation(c, req, info)
 	return nil
 }
 
@@ -165,7 +162,6 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	} else {
 		return ClaudeHandler(c, resp, info, a.RequestMode)
 	}
-	return
 }
 
 func (a *Adaptor) GetModelList() []string {

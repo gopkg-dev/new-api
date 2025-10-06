@@ -240,7 +240,7 @@ func GetAndValidateClaudeRequest(c *gin.Context) (textRequest *dto.ClaudeRequest
 	if c.Query("beta") != "true" ||
 		!strings.Contains(c.GetHeader("User-Agent"), "claude-cli") ||
 		c.GetHeader("X-App") != "cli" ||
-		textRequest.MetaData.UserId == "" ||
+		textRequest.Metadata == nil ||
 		!strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
 
 		// 保存错误日志到mysql中
