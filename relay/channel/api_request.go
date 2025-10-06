@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
+	"sync"
+	"time"
+
 	common2 "one-api/common"
 	"one-api/logger"
 	"one-api/relay/common"
@@ -14,8 +18,6 @@ import (
 	"one-api/service"
 	"one-api/setting/operation_setting"
 	"one-api/types"
-	"sync"
-	"time"
 
 	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/gin-gonic/gin"
@@ -64,6 +66,10 @@ func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 	if err != nil {
 		return nil, fmt.Errorf("setup request header failed: %w", err)
 	}
+
+	data, _ := httputil.DumpRequest(req, true)
+	logger.LogDebug(c, "Upstream Request: \n"+string(data))
+
 	resp, err := doRequest(c, req, info)
 	if err != nil {
 		return nil, fmt.Errorf("do request failed: %w", err)
@@ -124,8 +130,8 @@ func DoWssRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 		return nil, fmt.Errorf("dial failed to %s: %w", fullRequestURL, err)
 	}
 	// send request body
-	//all, err := io.ReadAll(requestBody)
-	//err = service.WssString(c, targetConn, string(all))
+	// all, err := io.ReadAll(requestBody)
+	// err = service.WssString(c, targetConn, string(all))
 	return targetConn, nil
 }
 

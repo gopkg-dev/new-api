@@ -3,9 +3,10 @@ package dto
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"one-api/common"
 	"one-api/types"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -195,7 +196,8 @@ type ClaudeRequest struct {
 	Temperature       *float64        `json:"temperature,omitempty"`
 	TopP              float64         `json:"top_p,omitempty"`
 	TopK              int             `json:"top_k,omitempty"`
-	//ClaudeMetadata    `json:"metadata,omitempty"`
+	MetaData          ClaudeMetadata  `json:"metadata,omitempty"`
+	// ClaudeMetadata    `json:"metadata,omitempty"`
 	Stream     bool      `json:"stream,omitempty"`
 	Tools      any       `json:"tools,omitempty"`
 	ToolChoice any       `json:"tool_choice,omitempty"`

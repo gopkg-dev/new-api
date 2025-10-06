@@ -6,3 +6,7 @@
 Makefile
 docs
 .eslintcache
+.env
+logs
+*.db
+one-api.service

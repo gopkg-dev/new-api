@@ -4,12 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
+
 	"one-api/common"
+	"one-api/constant"
 	"one-api/dto"
 	"one-api/logger"
+	"one-api/model"
 	relayconstant "one-api/relay/constant"
 	"one-api/types"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -171,7 +174,7 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 		}
 
 		if imageRequest.Model == "" {
-			//imageRequest.Model = "dall-e-3"
+			// imageRequest.Model = "dall-e-3"
 			return nil, errors.New("model is required")
 		}
 
@@ -203,9 +206,9 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			}
 		}
 
-		//if imageRequest.Prompt == "" {
+		// if imageRequest.Prompt == "" {
 		//	return nil, errors.New("prompt is required")
-		//}
+		// }
 
 		if imageRequest.N == 0 {
 			imageRequest.N = 1
@@ -221,16 +224,51 @@ func GetAndValidateClaudeRequest(c *gin.Context) (textRequest *dto.ClaudeRequest
 	if err != nil {
 		return nil, err
 	}
-	if textRequest.Messages == nil || len(textRequest.Messages) == 0 {
+
+	if len(textRequest.Messages) == 0 {
 		return nil, errors.New("field messages is required")
 	}
 	if textRequest.Model == "" {
 		return nil, errors.New("field model is required")
 	}
 
-	//if textRequest.Stream {
+	// if textRequest.Stream {
 	//	relayInfo.IsStream = true
-	//}
+	// }
+
+	// 检查 Claude CLI 访问权限
+	if c.Query("beta") != "true" ||
+		!strings.Contains(c.GetHeader("User-Agent"), "claude-cli") ||
+		c.GetHeader("X-App") != "cli" ||
+		textRequest.MetaData.UserId == "" ||
+		!strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+
+		// 保存错误日志到mysql中
+		userId := c.GetInt("id")
+		tokenName := c.GetString("token_name")
+		modelName := c.GetString("original_model")
+		tokenId := c.GetInt("token_id")
+		userGroup := c.GetString("group")
+		channelId := c.GetInt("channel_id")
+		other := make(map[string]interface{})
+		other["error_type"] = "new_api_error"
+		other["error_code"] = "invalid_request"
+		other["status_code"] = 500
+		other["channel_id"] = channelId
+		other["channel_name"] = c.GetString("channel_name")
+		other["channel_type"] = c.GetInt("channel_type")
+		adminInfo := make(map[string]interface{})
+		adminInfo["use_channel"] = c.GetStringSlice("use_channel")
+		isMultiKey := common.GetContextKeyBool(c, constant.ContextKeyChannelIsMultiKey)
+		if isMultiKey {
+			adminInfo["is_multi_key"] = true
+			adminInfo["multi_key_index"] = common.GetContextKeyInt(c, constant.ContextKeyChannelMultiKeyIndex)
+		}
+		other["admin_info"] = adminInfo
+		model.RecordErrorLog(c, userId, channelId, modelName, tokenName, "ClaudeX: 请勿在 Claude Code CLI 之外使用接口", tokenId, 0, false, userGroup, other)
+
+		return nil, errors.New("ClaudeX: 请勿在 Claude Code CLI 之外使用接口")
+	}
 
 	return textRequest, nil
 }
@@ -301,9 +339,9 @@ func GetAndValidateGeminiRequest(c *gin.Context) (*dto.GeminiChatRequest, error)
 		return nil, errors.New("contents is required")
 	}
 
-	//if c.Query("alt") == "sse" {
+	// if c.Query("alt") == "sse" {
 	//	relayInfo.IsStream = true
-	//}
+	// }
 
 	return request, nil
 }

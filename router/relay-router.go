@@ -1,8 +1,12 @@
 package router
 
 import (
+	"fmt"
+	"net/http"
+
 	"one-api/constant"
 	"one-api/controller"
+	"one-api/logger"
 	"one-api/middleware"
 	"one-api/relay"
 	"one-api/types"
@@ -72,13 +76,24 @@ func SetRelayRouter(router *gin.Engine) {
 		})
 	}
 	{
-		//http router
+		// http router
 		httpRouter := relayV1Router.Group("")
 		httpRouter.Use(middleware.Distribute())
 
 		// claude related routes
 		httpRouter.POST("/messages", func(c *gin.Context) {
 			controller.Relay(c, types.RelayFormatClaude)
+		})
+
+		httpRouter.POST("/messages/count_tokens", func(c *gin.Context) {
+			logger.LogDebug(c, fmt.Sprintf("Request to /v1/messages/count_tokens: %v", c.Request.Body))
+			c.JSON(http.StatusNotImplemented, gin.H{
+				"type": "error",
+				"error": gin.H{
+					"type":    "not_supported_error",
+					"message": "Token counting is not currently supported by this API endpoint",
+				},
+			})
 		})
 
 		// chat related routes
@@ -159,7 +174,7 @@ func SetRelayRouter(router *gin.Engine) {
 
 	relayMjModeRouter := router.Group("/:mode/mj")
 	registerMjRouterGroup(relayMjModeRouter)
-	//relayMjRouter.Use()
+	// relayMjRouter.Use()
 
 	relaySunoRouter := router.Group("/suno")
 	relaySunoRouter.Use(middleware.TokenAuth(), middleware.Distribute())

@@ -4,11 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"one-api/constant"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"one-api/constant"
 )
 
 var (
@@ -116,5 +117,5 @@ func initConstantEnv() {
 	// GenerateDefaultToken 是否生成初始令牌，默认关闭。
 	constant.GenerateDefaultToken = GetEnvOrDefaultBool("GENERATE_DEFAULT_TOKEN", false)
 	// 是否启用错误日志
-	constant.ErrorLogEnabled = GetEnvOrDefaultBool("ERROR_LOG_ENABLED", false)
+	constant.ErrorLogEnabled = GetEnvOrDefaultBool("ERROR_LOG_ENABLED", true)
 }

@@ -354,7 +354,7 @@ const RechargeCard = ({
                             <div style={{ textAlign: 'center' }}>
                               <Typography.Title heading={6} style={{ margin: '0 0 8px 0' }}>
                                 <Coins size={18} />
-                                {formatLargeNumber(preset.value)}
+                                {formatLargeNumber(preset.value)} 美元额度
                                 {hasDiscount && (
                                    <Tag style={{ marginLeft: 4 }} color="green">
                                    {t('折').includes('off') ?
