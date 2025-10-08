@@ -84,8 +84,10 @@ func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 		return nil, fmt.Errorf("setup request header failed: %w", err)
 	}
 
-	data, _ := httputil.DumpRequest(req, true)
-	logger.LogDebug(c, "Upstream Request: \n"+string(data))
+	if common2.DebugEnabled {
+		data, _ := httputil.DumpRequest(req, true)
+		println(string(data))
+	}
 
 	resp, err := doRequest(c, req, info)
 	if err != nil {
