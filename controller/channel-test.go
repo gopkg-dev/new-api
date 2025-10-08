@@ -10,6 +10,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"one-api/common"
 	"one-api/constant"
 	"one-api/dto"
@@ -22,10 +27,6 @@ import (
 	"one-api/service"
 	"one-api/setting/operation_setting"
 	"one-api/types"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/samber/lo"
@@ -111,7 +112,7 @@ func testChannel(channel *model.Channel, testModel string, endpointType string) 
 	}
 	cache.WriteContext(c)
 
-	//c.Request.Header.Set("Authorization", "Bearer "+channel.Key)
+	// c.Request.Header.Set("Authorization", "Bearer "+channel.Key)
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.Set("channel", channel.Type)
 	c.Set("base_url", channel.GetBaseURL())
@@ -209,9 +210,9 @@ func testChannel(channel *model.Channel, testModel string, endpointType string) 
 		}
 	}
 
-	//// 创建一个用于日志的 info 副本，移除 ApiKey
-	//logInfo := info
-	//logInfo.ApiKey = ""
+	// // 创建一个用于日志的 info 副本，移除 ApiKey
+	// logInfo := info
+	// logInfo.ApiKey = ""
 	common.SysLog(fmt.Sprintf("testing channel %d with model %s , info %+v ", channel.Id, testModel, info.ToString()))
 
 	priceData, err := helper.ModelPriceHelper(c, info, 0, request.GetTokenCountMeta())
@@ -292,6 +293,11 @@ func testChannel(channel *model.Channel, testModel string, endpointType string) 
 			newAPIError: types.NewError(err, types.ErrorCodeConvertRequestFailed),
 		}
 	}
+
+	if claudeReq, ok := convertedRequest.(*dto.ClaudeRequest); ok {
+		claudeReq.Metadata = json.RawMessage(`{"user_id": "user_123456_account__session_1234567890"}`)
+	}
+
 	jsonData, err := json.Marshal(convertedRequest)
 	if err != nil {
 		return testResult{
@@ -490,11 +496,11 @@ func TestChannel(c *gin.Context) {
 			return
 		}
 	}
-	//defer func() {
+	// defer func() {
 	//	if channel.ChannelInfo.IsMultiKey {
 	//		go func() { _ = channel.SaveChannelInfo() }()
 	//	}
-	//}()
+	// }()
 	testModel := c.Query("model")
 	endpointType := c.Query("endpoint_type")
 	tik := time.Now()
