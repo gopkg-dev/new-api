@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+
 	"one-api/common"
 	"one-api/dto"
 	"one-api/logger"
@@ -14,9 +16,9 @@ import (
 	"one-api/service"
 	"one-api/setting/model_setting"
 	"one-api/types"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tidwall/sjson"
 )
 
 const (
@@ -436,7 +438,7 @@ func StreamResponseClaude2OpenAI(reqMode int, claudeResponse *dto.ClaudeResponse
 		if claudeResponse.Type == "message_start" {
 			response.Id = claudeResponse.Message.Id
 			response.Model = claudeResponse.Message.Model
-			//claudeUsage = &claudeResponse.Message.Usage
+			// claudeUsage = &claudeResponse.Message.Usage
 			choice.Delta.SetContentString("")
 			choice.Delta.Role = "assistant"
 		} else if claudeResponse.Type == "content_block_start" {
@@ -485,7 +487,7 @@ func StreamResponseClaude2OpenAI(reqMode int, claudeResponse *dto.ClaudeResponse
 			if finishReason != "null" {
 				choice.FinishReason = &finishReason
 			}
-			//claudeUsage = &claudeResponse.Usage
+			// claudeUsage = &claudeResponse.Usage
 		} else if claudeResponse.Type == "message_stop" {
 			return nil
 		} else {
@@ -642,6 +644,14 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 			if claudeResponse.Type == "message_start" {
 				// message_start, 获取usage
 				info.UpstreamModelName = claudeResponse.Message.Model
+
+				// 如果是模型映射，替换回原始模型名
+				if info.IsModelMapped {
+					data, err = sjson.Set(data, "message.model", info.OriginModelName)
+					if err != nil {
+						return types.NewError(err, types.ErrorCodeBadResponseBody)
+					}
+				}
 			} else if claudeResponse.Type == "content_block_delta" {
 			} else if claudeResponse.Type == "message_delta" {
 			}
@@ -668,7 +678,7 @@ func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, clau
 		claudeInfo.Usage = service.ResponseText2Usage(claudeInfo.ResponseText.String(), info.UpstreamModelName, info.PromptTokens)
 	} else {
 		if claudeInfo.Usage.PromptTokens == 0 {
-			//上游出错
+			// 上游出错
 		}
 		if claudeInfo.Usage.CompletionTokens == 0 || !claudeInfo.Done {
 			if common.DebugEnabled {
@@ -752,6 +762,14 @@ func HandleClaudeResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 
 	if claudeResponse.Usage.ServerToolUse != nil && claudeResponse.Usage.ServerToolUse.WebSearchRequests > 0 {
 		c.Set("claude_web_search_requests", claudeResponse.Usage.ServerToolUse.WebSearchRequests)
+	}
+
+	// 如果是模型映射，替换回原始模型名
+	if info.IsModelMapped {
+		responseData, err = sjson.SetBytes(responseData, "model", info.OriginModelName)
+		if err != nil {
+			return types.NewError(err, types.ErrorCodeBadResponseBody)
+		}
 	}
 
 	service.IOCopyBytesGracefully(c, httpResp, responseData)
