@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -218,6 +219,24 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 	return imageRequest, nil
 }
 
+func hasValidUserIdInMetadata(metadata json.RawMessage) bool {
+	if len(metadata) == 0 {
+		return false
+	}
+
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal(metadata, &metadataMap); err != nil {
+		return false
+	}
+
+	if userId, exists := metadataMap["user_id"]; exists {
+		if userIdStr, ok := userId.(string); ok && userIdStr != "" {
+			return strings.Count(userIdStr, "_") == 5
+		}
+	}
+	return false
+}
+
 func GetAndValidateClaudeRequest(c *gin.Context) (textRequest *dto.ClaudeRequest, err error) {
 	textRequest = &dto.ClaudeRequest{}
 	err = c.ShouldBindJSON(textRequest)
@@ -240,8 +259,9 @@ func GetAndValidateClaudeRequest(c *gin.Context) (textRequest *dto.ClaudeRequest
 	if c.Query("beta") != "true" ||
 		!strings.Contains(c.GetHeader("User-Agent"), "claude-cli") ||
 		c.GetHeader("X-App") != "cli" ||
-		textRequest.Metadata == nil ||
-		!strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+		!hasValidUserIdInMetadata(textRequest.Metadata) ||
+		!strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") ||
+		c.GetHeader("Anthropic-Beta") == "" {
 
 		// 保存错误日志到mysql中
 		userId := c.GetInt("id")
