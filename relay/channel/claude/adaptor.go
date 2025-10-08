@@ -53,17 +53,12 @@ func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
 }
 
 func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
-	baseURL := ""
 	if a.RequestMode == RequestModeMessage {
-		baseURL = fmt.Sprintf("%s/v1/messages", info.ChannelBaseUrl)
+		return fmt.Sprintf("%s/v1/messages?beta=true", info.ChannelBaseUrl), nil
 	} else {
 		// baseURL = fmt.Sprintf("%s/v1/complete", info.ChannelBaseUrl)
 		return "", errors.New("ClaudeX: 请勿在 Claude Code CLI 之外使用接口")
 	}
-	if info.IsClaudeBetaQuery {
-		baseURL = baseURL + "?beta=true"
-	}
-	return baseURL, nil
 }
 
 func CommonClaudeHeadersOperation(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) {
