@@ -7,13 +7,13 @@ import (
 	"math"
 	"strings"
 
-	"one-api/common"
-	"one-api/constant"
-	"one-api/dto"
-	"one-api/logger"
-	"one-api/model"
-	relayconstant "one-api/relay/constant"
-	"one-api/types"
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/model"
+	relayconstant "github.com/QuantumNous/new-api/relay/constant"
+	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +27,8 @@ func GetAndValidateRequest(c *gin.Context, format types.RelayFormat) (request dt
 	case types.RelayFormatGemini:
 		if strings.Contains(c.Request.URL.Path, ":embedContent") || strings.Contains(c.Request.URL.Path, ":batchEmbedContents") {
 			request, err = GetAndValidateGeminiEmbeddingRequest(c)
+		} else if strings.Contains(c.Request.URL.Path, ":batchEmbedContents") {
+			request, err = GetAndValidateGeminiBatchEmbeddingRequest(c)
 		} else {
 			request, err = GetAndValidateGeminiRequest(c)
 		}
@@ -161,8 +163,9 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 				imageRequest.N = 1
 			}
 
-			watermark := formData.Has("watermark")
-			if watermark {
+			hasWatermark := formData.Has("watermark")
+			if hasWatermark {
+				watermark := formData.Get("watermark") == "true"
 				imageRequest.Watermark = &watermark
 			}
 			break
@@ -175,7 +178,7 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 		}
 
 		if imageRequest.Model == "" {
-			// imageRequest.Model = "dall-e-3"
+			//imageRequest.Model = "dall-e-3"
 			return nil, errors.New("model is required")
 		}
 
@@ -207,9 +210,9 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			}
 		}
 
-		// if imageRequest.Prompt == "" {
+		//if imageRequest.Prompt == "" {
 		//	return nil, errors.New("prompt is required")
-		// }
+		//}
 
 		if imageRequest.N == 0 {
 			imageRequest.N = 1
@@ -243,17 +246,16 @@ func GetAndValidateClaudeRequest(c *gin.Context) (textRequest *dto.ClaudeRequest
 	if err != nil {
 		return nil, err
 	}
-
-	if len(textRequest.Messages) == 0 {
+	if textRequest.Messages == nil || len(textRequest.Messages) == 0 {
 		return nil, errors.New("field messages is required")
 	}
 	if textRequest.Model == "" {
 		return nil, errors.New("field model is required")
 	}
 
-	// if textRequest.Stream {
+	//if textRequest.Stream {
 	//	relayInfo.IsStream = true
-	// }
+	//}
 
 	// 检查 Claude CLI 访问权限
 	if c.Query("beta") != "true" ||
@@ -357,19 +359,28 @@ func GetAndValidateGeminiRequest(c *gin.Context) (*dto.GeminiChatRequest, error)
 	if err != nil {
 		return nil, err
 	}
-	if len(request.Contents) == 0 {
+	if len(request.Contents) == 0 && len(request.Requests) == 0 {
 		return nil, errors.New("contents is required")
 	}
 
-	// if c.Query("alt") == "sse" {
+	//if c.Query("alt") == "sse" {
 	//	relayInfo.IsStream = true
-	// }
+	//}
 
 	return request, nil
 }
 
 func GetAndValidateGeminiEmbeddingRequest(c *gin.Context) (*dto.GeminiEmbeddingRequest, error) {
 	request := &dto.GeminiEmbeddingRequest{}
+	err := common.UnmarshalBodyReusable(c, request)
+	if err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
+func GetAndValidateGeminiBatchEmbeddingRequest(c *gin.Context) (*dto.GeminiBatchEmbeddingRequest, error) {
+	request := &dto.GeminiBatchEmbeddingRequest{}
 	err := common.UnmarshalBodyReusable(c, request)
 	if err != nil {
 		return nil, err

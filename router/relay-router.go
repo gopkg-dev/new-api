@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"one-api/constant"
-	"one-api/controller"
-	"one-api/logger"
-	"one-api/middleware"
-	"one-api/relay"
-	"one-api/types"
+	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/controller"
+	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/middleware"
+	"github.com/QuantumNous/new-api/relay"
+	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
@@ -76,7 +76,7 @@ func SetRelayRouter(router *gin.Engine) {
 		})
 	}
 	{
-		// http router
+		//http router
 		httpRouter := relayV1Router.Group("")
 		httpRouter.Use(middleware.Distribute())
 
@@ -174,7 +174,7 @@ func SetRelayRouter(router *gin.Engine) {
 
 	relayMjModeRouter := router.Group("/:mode/mj")
 	registerMjRouterGroup(relayMjModeRouter)
-	// relayMjRouter.Use()
+	//relayMjRouter.Use()
 
 	relaySunoRouter := router.Group("/suno")
 	relaySunoRouter.Use(middleware.TokenAuth(), middleware.Distribute())

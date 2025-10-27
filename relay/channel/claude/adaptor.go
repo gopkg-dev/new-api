@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strings"
 
-	"one-api/dto"
-	"one-api/relay/channel"
-	relaycommon "one-api/relay/common"
-	"one-api/setting/model_setting"
-	"one-api/types"
+	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/relay/channel"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/setting/model_setting"
+	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,12 +53,17 @@ func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
 }
 
 func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
+	baseURL := ""
 	if a.RequestMode == RequestModeMessage {
-		return fmt.Sprintf("%s/v1/messages?beta=true", info.ChannelBaseUrl), nil
+		baseURL = fmt.Sprintf("%s/v1/messages", info.ChannelBaseUrl)
 	} else {
 		// baseURL = fmt.Sprintf("%s/v1/complete", info.ChannelBaseUrl)
 		return "", errors.New("ClaudeX: 请勿在 Claude Code CLI 之外使用接口")
 	}
+	if info.IsClaudeBetaQuery {
+		baseURL = baseURL + "?beta=true"
+	}
+	return baseURL, nil
 }
 
 func CommonClaudeHeadersOperation(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) {
@@ -113,7 +118,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 		req.Set("Sec-Fetch-Mode", "cors")
 	}
 	if req.Get("User-Agent") == "" {
-		req.Set("User-Agent", "claude-cli/2.0.8 (external, cli)")
+		req.Set("User-Agent", "claude-cli/2.0.27 (external, cli)")
 	}
 	if req.Get("X-App") == "" {
 		req.Set("X-App", "cli")
@@ -157,6 +162,7 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	} else {
 		return ClaudeHandler(c, resp, info, a.RequestMode)
 	}
+	return
 }
 
 func (a *Adaptor) GetModelList() []string {

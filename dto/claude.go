@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"one-api/common"
-	"one-api/types"
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,7 +24,7 @@ type ClaudeMediaMessage struct {
 	StopReason   *string              `json:"stop_reason,omitempty"`
 	PartialJson  *string              `json:"partial_json,omitempty"`
 	Role         string               `json:"role,omitempty"`
-	Thinking     string               `json:"thinking,omitempty"`
+	Thinking     *string              `json:"thinking,omitempty"`
 	Signature    string               `json:"signature,omitempty"`
 	Delta        string               `json:"delta,omitempty"`
 	CacheControl json.RawMessage      `json:"cache_control,omitempty"`
@@ -148,6 +148,10 @@ func (c *ClaudeMessage) SetStringContent(content string) {
 	c.Content = content
 }
 
+func (c *ClaudeMessage) SetContent(content any) {
+	c.Content = content
+}
+
 func (c *ClaudeMessage) ParseContent() ([]ClaudeMediaMessage, error) {
 	return common.Any2Type[[]ClaudeMediaMessage](c.Content)
 }
@@ -198,9 +202,9 @@ type ClaudeRequest struct {
 	TopK              int             `json:"top_k,omitempty"`
 	Stream            bool            `json:"stream,omitempty"`
 	Tools             any             `json:"tools,omitempty"`
+	ContextManagement json.RawMessage `json:"context_management,omitempty"`
 	ToolChoice        any             `json:"tool_choice,omitempty"`
 	Thinking          *Thinking       `json:"thinking,omitempty"`
-	ContextManagement json.RawMessage `json:"context_management,omitempty"`
 	McpServers        json.RawMessage `json:"mcp_servers,omitempty"`
 	Metadata          json.RawMessage `json:"metadata,omitempty"`
 	// 服务层级字段，用于指定 API 服务等级。允许透传可能导致实际计费高于预期，默认应过滤

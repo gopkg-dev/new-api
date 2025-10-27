@@ -15,18 +15,18 @@ import (
 	"sync"
 	"time"
 
-	"one-api/common"
-	"one-api/constant"
-	"one-api/dto"
-	"one-api/middleware"
-	"one-api/model"
-	"one-api/relay"
-	relaycommon "one-api/relay/common"
-	relayconstant "one-api/relay/constant"
-	"one-api/relay/helper"
-	"one-api/service"
-	"one-api/setting/operation_setting"
-	"one-api/types"
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/middleware"
+	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/relay"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	relayconstant "github.com/QuantumNous/new-api/relay/constant"
+	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/types"
 
 	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/samber/lo"
@@ -60,6 +60,21 @@ func testChannel(channel *model.Channel, testModel string, endpointType string) 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
+	testModel = strings.TrimSpace(testModel)
+	if testModel == "" {
+		if channel.TestModel != nil && *channel.TestModel != "" {
+			testModel = strings.TrimSpace(*channel.TestModel)
+		} else {
+			models := channel.GetModels()
+			if len(models) > 0 {
+				testModel = strings.TrimSpace(models[0])
+			}
+			if testModel == "" {
+				testModel = "gpt-4o-mini"
+			}
+		}
+	}
+
 	requestPath := "/v1/chat/completions"
 
 	// 如果指定了端点类型，使用指定的端点类型
@@ -91,18 +106,6 @@ func testChannel(channel *model.Channel, testModel string, endpointType string) 
 		Header: make(http.Header),
 	}
 
-	if testModel == "" {
-		if channel.TestModel != nil && *channel.TestModel != "" {
-			testModel = *channel.TestModel
-		} else {
-			if len(channel.GetModels()) > 0 {
-				testModel = channel.GetModels()[0]
-			} else {
-				testModel = "gpt-4o-mini"
-			}
-		}
-	}
-
 	cache, err := model.GetUserCache(1)
 	if err != nil {
 		return testResult{
@@ -112,7 +115,7 @@ func testChannel(channel *model.Channel, testModel string, endpointType string) 
 	}
 	cache.WriteContext(c)
 
-	// c.Request.Header.Set("Authorization", "Bearer "+channel.Key)
+	//c.Request.Header.Set("Authorization", "Bearer "+channel.Key)
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.Set("channel", channel.Type)
 	c.Set("base_url", channel.GetBaseURL())
@@ -210,9 +213,9 @@ func testChannel(channel *model.Channel, testModel string, endpointType string) 
 		}
 	}
 
-	// // 创建一个用于日志的 info 副本，移除 ApiKey
-	// logInfo := info
-	// logInfo.ApiKey = ""
+	//// 创建一个用于日志的 info 副本，移除 ApiKey
+	//logInfo := info
+	//logInfo.ApiKey = ""
 	common.SysLog(fmt.Sprintf("testing channel %d with model %s , info %+v ", channel.Id, testModel, info.ToString()))
 
 	priceData, err := helper.ModelPriceHelper(c, info, 0, request.GetTokenCountMeta())
@@ -496,11 +499,11 @@ func TestChannel(c *gin.Context) {
 			return
 		}
 	}
-	// defer func() {
+	//defer func() {
 	//	if channel.ChannelInfo.IsMultiKey {
 	//		go func() { _ = channel.SaveChannelInfo() }()
 	//	}
-	// }()
+	//}()
 	testModel := c.Query("model")
 	endpointType := c.Query("endpoint_type")
 	tik := time.Now()
@@ -625,10 +628,10 @@ func AutomaticallyTestChannels() {
 				time.Sleep(10 * time.Minute)
 				continue
 			}
-			frequency := operation_setting.GetMonitorSetting().AutoTestChannelMinutes
-			common.SysLog(fmt.Sprintf("automatically test channels with interval %d minutes", frequency))
 			for {
+				frequency := operation_setting.GetMonitorSetting().AutoTestChannelMinutes
 				time.Sleep(time.Duration(frequency) * time.Minute)
+				common.SysLog(fmt.Sprintf("automatically test channels with interval %d minutes", frequency))
 				common.SysLog("automatically testing all channels")
 				_ = testAllChannels(false)
 				common.SysLog("automatically channel test finished")

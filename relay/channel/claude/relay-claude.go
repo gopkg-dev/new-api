@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"strings"
 
-	"one-api/common"
-	"one-api/dto"
-	"one-api/logger"
-	"one-api/relay/channel/openrouter"
-	relaycommon "one-api/relay/common"
-	"one-api/relay/helper"
-	"one-api/service"
-	"one-api/setting/model_setting"
-	"one-api/types"
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/relay/channel/openrouter"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/model_setting"
+	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/sjson"
@@ -438,7 +438,7 @@ func StreamResponseClaude2OpenAI(reqMode int, claudeResponse *dto.ClaudeResponse
 		if claudeResponse.Type == "message_start" {
 			response.Id = claudeResponse.Message.Id
 			response.Model = claudeResponse.Message.Model
-			// claudeUsage = &claudeResponse.Message.Usage
+			//claudeUsage = &claudeResponse.Message.Usage
 			choice.Delta.SetContentString("")
 			choice.Delta.Role = "assistant"
 		} else if claudeResponse.Type == "content_block_start" {
@@ -478,8 +478,7 @@ func StreamResponseClaude2OpenAI(reqMode int, claudeResponse *dto.ClaudeResponse
 					signatureContent := "\n"
 					choice.Delta.ReasoningContent = &signatureContent
 				case "thinking_delta":
-					thinkingContent := claudeResponse.Delta.Thinking
-					choice.Delta.ReasoningContent = &thinkingContent
+					choice.Delta.ReasoningContent = claudeResponse.Delta.Thinking
 				}
 			}
 		} else if claudeResponse.Type == "message_delta" {
@@ -487,7 +486,7 @@ func StreamResponseClaude2OpenAI(reqMode int, claudeResponse *dto.ClaudeResponse
 			if finishReason != "null" {
 				choice.FinishReason = &finishReason
 			}
-			// claudeUsage = &claudeResponse.Usage
+			//claudeUsage = &claudeResponse.Usage
 		} else if claudeResponse.Type == "message_stop" {
 			return nil
 		} else {
@@ -514,7 +513,9 @@ func ResponseClaude2OpenAI(reqMode int, claudeResponse *dto.ClaudeResponse) *dto
 	var responseThinking string
 	if len(claudeResponse.Content) > 0 {
 		responseText = claudeResponse.Content[0].GetText()
-		responseThinking = claudeResponse.Content[0].Thinking
+		if claudeResponse.Content[0].Thinking != nil {
+			responseThinking = *claudeResponse.Content[0].Thinking
+		}
 	}
 	tools := make([]dto.ToolCallResponse, 0)
 	thinkingContent := ""
@@ -546,7 +547,9 @@ func ResponseClaude2OpenAI(reqMode int, claudeResponse *dto.ClaudeResponse) *dto
 				})
 			case "thinking":
 				// 加密的不管， 只输出明文的推理过程
-				thinkingContent = message.Thinking
+				if message.Thinking != nil {
+					thinkingContent = *message.Thinking
+				}
 			case "text":
 				responseText = message.GetText()
 			}
@@ -599,8 +602,8 @@ func FormatClaudeResponseInfo(requestMode int, claudeResponse *dto.ClaudeRespons
 			if claudeResponse.Delta.Text != nil {
 				claudeInfo.ResponseText.WriteString(*claudeResponse.Delta.Text)
 			}
-			if claudeResponse.Delta.Thinking != "" {
-				claudeInfo.ResponseText.WriteString(claudeResponse.Delta.Thinking)
+			if claudeResponse.Delta.Thinking != nil {
+				claudeInfo.ResponseText.WriteString(*claudeResponse.Delta.Thinking)
 			}
 		} else if claudeResponse.Type == "message_delta" {
 			// 最终的usage获取
@@ -678,7 +681,7 @@ func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, clau
 		claudeInfo.Usage = service.ResponseText2Usage(claudeInfo.ResponseText.String(), info.UpstreamModelName, info.PromptTokens)
 	} else {
 		if claudeInfo.Usage.PromptTokens == 0 {
-			// 上游出错
+			//上游出错
 		}
 		if claudeInfo.Usage.CompletionTokens == 0 || !claudeInfo.Done {
 			if common.DebugEnabled {
